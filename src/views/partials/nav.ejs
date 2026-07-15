@@ -1,0 +1,23 @@
+<header class="app-header">
+  <div class="app-header-inner">
+    <a href="/reports" class="app-title">経費精算表システム</a>
+    <nav>
+      <a href="/reports/new">新規入力</a>
+      <a href="/reports">申請一覧</a>
+      <% if (currentUser && (currentUser.role === 'supervisor' || currentUser.role === 'admin')) { %>
+        <a href="/approvals">上長承認</a>
+      <% } %>
+      <% if (currentUser && (currentUser.role === 'accounting' || currentUser.role === 'admin')) { %>
+        <a href="/accounting">経理確認</a>
+      <% } %>
+      <% if (currentUser) { %>
+        <div class="nav-user">
+          <span class="user-name"><%= currentUser.name %> さん</span>
+          <form method="POST" action="/logout" style="display:inline">
+            <button type="submit" class="link-button">ログアウト</button>
+          </form>
+        </div>
+      <% } %>
+    </nav>
+  </div>
+</header>

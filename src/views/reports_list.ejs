@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <title>申請一覧 | 経費精算表システム</title>
+  <%- include('partials/head') %>
+</head>
+<body>
+  <%- include('partials/nav') %>
+  <main class="container">
+    <h1>申請一覧</h1>
+    <% if (reports.length === 0) { %>
+      <p>まだ申請がありません。<a href="/reports/new">新規入力</a>から作成してください。</p>
+    <% } else { %>
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th>日付</th>
+            <th>会社</th>
+            <th>部署</th>
+            <th>氏名</th>
+            <th>合計金額</th>
+            <th>ステータス</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% reports.forEach(r => { %>
+            <tr>
+              <td><%= r.report_date %></td>
+              <td><%= r.company %></td>
+              <td><%= r.department %></td>
+              <td><%= r.applicant_name %></td>
+              <td class="amount"><%= r.total_amount.toLocaleString() %> 円</td>
+              <td><span class="status status-<%= r.status %>"><%= ({
+                draft: '下書き',
+                submitted: '申請中',
+                approved: '承認済み',
+                accounting_checked: '経理確認済み',
+                accounting_rejected: '経理確認中(差戻し対応中)',
+                rejected: '差戻し'
+              })[r.status] %></span></td>
+              <td>
+                <a href="/reports/<%= r.id %>">詳細</a>
+                <% if (r.status === 'rejected') { %>
+                  ・<a href="/reports/<%= r.id %>/edit">編集</a>
+                <% } %>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    <% } %>
+  </main>
+</body>
+</html>

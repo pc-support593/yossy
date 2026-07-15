@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: expense-report-system
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node src/seed.js && node src/server.js
+    envVars:
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: DB_PATH
+        value: ./data/expense.db

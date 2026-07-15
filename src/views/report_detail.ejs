@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <title>申請詳細 | 経費精算表システム</title>
+  <%- include('partials/head') %>
+</head>
+<body>
+  <%- include('partials/nav') %>
+  <main class="container">
+    <h1>精 算 表 詳細</h1>
+    <div class="report-header report-header-readonly">
+      <div><span class="field-label">会社名</span><%= report.company %></div>
+      <div><span class="field-label">部署</span><%= report.department %></div>
+      <div><span class="field-label">氏名</span><%= report.applicant_name %></div>
+      <div><span class="field-label">日付</span><%= report.report_date %></div>
+      <div><span class="field-label">ステータス</span>
+        <span class="status status-<%= report.status %>"><%= ({
+          draft: '下書き',
+          submitted: '申請中',
+          approved: '承認済み',
+          accounting_checked: '経理確認済み',
+          accounting_rejected: '経理確認中(差戻し対応中)',
+          rejected: '差戻し'
+        })[report.status] %></span>
+      </div>
+    </div>
+
+    <table class="items-table">
+      <thead>
+        <tr>
+          <th>領収書</th>
+          <th>月日</th>
+          <th>現場名</th>
+          <th>支払先</th>
+          <th>商品名</th>
+          <th>税込金額</th>
+          <th>添付ファイル</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% items.forEach(it => { %>
+          <tr>
+            <td><%= it.has_receipt %></td>
+            <td><%= it.item_date %></td>
+            <td><%= it.site_name %></td>
+            <td><%= it.payee %></td>
+            <td><%= it.item_name %></td>
+            <td class="amount"><%= it.amount.toLocaleString() %> 円</td>
+            <td class="attachment-link">
+              <% if (it.receipt_path) { %>
+                <a href="/uploads/receipt/<%= it.id %>" target="_blank" rel="noopener" class="receipt-link" data-type="<%= it.receipt_is_pdf ? 'pdf' : 'image' %>"><%= it.receipt_original_name || '表示' %></a>
+              <% } else { %>
+                -
+              <% } %>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="5" class="total-label">合計</td>
+          <td class="total-amount"><%= report.total_amount.toLocaleString() %> 円</td>
+          <td></td>
+        </tr>
+      </tfoot>
+    </table>
+
+    <% if (report.status === 'rejected') { %>
+      <div class="form-actions">
+        <a href="/reports/<%= report.id %>/edit" class="primary-button">編集して再申請する</a>
+      </div>
+    <% } %>
+  </main>
+  <%- include('partials/receipt_modal') %>
+</body>
+</html>

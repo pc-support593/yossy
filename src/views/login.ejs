@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <title>ログイン | 経費精算表システム</title>
+  <%- include('partials/head') %>
+</head>
+<body>
+  <main class="login-page">
+    <h1>経費精算表システム</h1>
+    <form method="POST" action="/login" class="login-form">
+      <% if (error) { %>
+        <p class="error"><%= error %></p>
+      <% } %>
+      <label>
+        メールアドレス
+        <input type="email" name="email" required autofocus>
+      </label>
+      <label>
+        パスワード
+        <input type="password" name="password" required>
+      </label>
+      <button type="submit">ログイン</button>
+    </form>
+  </main>
+</body>
+</html>

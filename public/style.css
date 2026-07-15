@@ -1,0 +1,227 @@
+:root {
+  color-scheme: light dark;
+  --border: #d0d5dd;
+  --accent: #2563eb;
+  --bg: #f7f8fa;
+  --text: #1f2933;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: "Hiragino Sans", "Yu Gothic", "Segoe UI", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.app-header {
+  background: #111827;
+  color: #fff;
+}
+.app-header-inner {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+.app-title { color: #fff; text-decoration: none; font-weight: bold; }
+.app-header nav { display: flex; align-items: center; gap: 16px; flex: 1; }
+.app-header nav a { color: #d1d5db; text-decoration: none; }
+.app-header nav a:hover { color: #fff; }
+.nav-user { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+.user-name { color: #9ca3af; font-size: 0.9em; }
+
+.link-button {
+  background: none;
+  border: none;
+  color: #d1d5db;
+  cursor: pointer;
+  padding: 0;
+  font-size: 1em;
+  text-decoration: underline;
+}
+
+.container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 24px 16px 64px;
+}
+
+h1 { font-size: 1.4em; margin-bottom: 20px; }
+
+.login-page {
+  max-width: 360px;
+  margin: 80px auto;
+  text-align: center;
+}
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  text-align: left;
+  background: #fff;
+  padding: 24px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+.login-form label { display: flex; flex-direction: column; gap: 4px; font-size: 0.9em; }
+.login-form input { padding: 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 1em; }
+.error { color: #dc2626; font-size: 0.9em; }
+
+.report-header {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+.report-header label { display: flex; flex-direction: column; gap: 4px; font-size: 0.85em; }
+.report-header input { padding: 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 1em; }
+.report-header-readonly { font-size: 0.95em; }
+.report-header-readonly .field-label { display: block; font-size: 0.8em; color: #6b7280; }
+
+.items-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.items-table th, .items-table td {
+  border: 1px solid var(--border);
+  padding: 8px;
+  font-size: 0.9em;
+  text-align: left;
+}
+.items-table th { background: #f1f3f5; }
+.items-table .hint { font-weight: normal; font-size: 0.8em; color: #6b7280; }
+.items-table input, .items-table select {
+  width: 100%;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+.items-table .amount-input { text-align: right; }
+.total-label { text-align: right; font-weight: bold; }
+.total-amount { font-weight: bold; text-align: right; }
+.amount { text-align: right; }
+
+/* 税込金額の上下スピンボタンを非表示にする */
+.amount-input::-webkit-outer-spin-button,
+.amount-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.amount-input {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.file-cell { min-width: 200px; }
+.file-cell input[type="file"] { width: 100%; font-size: 0.8em; padding: 4px 0; border: none; }
+.file-cell .is-hidden { display: none; }
+.file-name-display { display: flex; align-items: center; gap: 8px; font-size: 0.85em; flex-wrap: wrap; }
+.file-name-link { color: var(--accent); word-break: break-all; }
+.file-name-link:not([href]) { color: var(--text); text-decoration: none; cursor: default; }
+.change-file-btn { font-size: 0.85em; }
+.attachment-link a { color: var(--accent); text-decoration: none; }
+
+.receipt-cell { min-width: 100px; }
+.receipt-cell select { min-width: 80px; }
+
+.secondary-button, .primary-button {
+  display: inline-block;
+  margin-top: 12px;
+  padding: 10px 18px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: #fff;
+  cursor: pointer;
+  font-size: 1em;
+  text-decoration: none;
+  color: inherit;
+}
+.primary-button {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+.form-actions { margin-top: 20px; }
+
+.ocr-btn { margin-top: 4px; padding: 4px 10px; font-size: 0.8em; }
+.ocr-status { display: block; margin-top: 4px; font-size: 0.78em; color: #6b7280; }
+
+.report-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.report-table th, .report-table td {
+  border: 1px solid var(--border);
+  padding: 10px;
+  font-size: 0.9em;
+}
+.report-table th { background: #f1f3f5; text-align: left; }
+
+.status {
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.8em;
+  background: #e5e7eb;
+}
+.status-submitted { background: #dbeafe; color: #1d4ed8; }
+.status-approved { background: #dcfce7; color: #15803d; }
+.status-accounting_checked { background: #ede9fe; color: #6d28d9; }
+.status-accounting_rejected { background: #ffedd5; color: #c2410c; }
+.status-rejected { background: #fee2e2; color: #b91c1c; }
+
+h2 { font-size: 1.15em; margin-top: 36px; margin-bottom: 12px; }
+
+.approval-actions { display: flex; gap: 12px; }
+.danger-button { color: #b91c1c; border-color: #fca5a5; }
+.back-link { margin-top: 20px; }
+.back-link a { color: var(--accent); text-decoration: none; }
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.modal.is-hidden { display: none; }
+.modal-content {
+  position: relative;
+  background: #fff;
+  border-radius: 8px;
+  padding: 20px;
+  max-width: 92vw;
+  max-height: 92vh;
+  display: flex;
+  overflow: auto;
+}
+.modal-close {
+  position: absolute;
+  top: 6px;
+  right: 10px;
+  background: none;
+  border: none;
+  font-size: 1.6em;
+  line-height: 1;
+  cursor: pointer;
+  color: #6b7280;
+}
+#receipt-modal-body img { max-width: 85vw; max-height: 85vh; display: block; }
+#receipt-modal-body iframe { width: 80vw; height: 80vh; border: none; }

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <title><%= mode === 'edit' ? '再編集' : '新規入力' %> | 経費精算表システム</title>
+  <%- include('partials/head') %>
+</head>
+<body>
+  <%- include('partials/nav') %>
+  <main class="container">
+    <h1>精 算 表<%= mode === 'edit' ? '(再編集)' : '' %></h1>
+    <form method="POST" action="<%= formAction %>" id="report-form" enctype="multipart/form-data">
+      <div class="report-header">
+        <label>
+          会社名
+          <select name="company" required>
+            <% companies.forEach(c => { %>
+              <option value="<%= c %>" <%= (report ? report.company : user.company) === c ? 'selected' : '' %>><%= c %></option>
+            <% }) %>
+          </select>
+        </label>
+        <label>
+          部署
+          <input type="text" name="department" value="<%= report ? report.department : (user.department || '') %>" required>
+        </label>
+        <label>
+          氏名
+          <input type="text" name="applicant_name" value="<%= report ? report.applicant_name : (user.name || '') %>" required>
+        </label>
+        <label>
+          日付
+          <input type="date" name="report_date" value="<%= today %>" required>
+        </label>
+      </div>
+
+      <table class="items-table" id="items-table">
+        <thead>
+          <tr>
+            <th>領収書</th>
+            <th>月日</th>
+            <th>現場名<br><span class="hint">(正確に・該当あれば〇)</span></th>
+            <th>支払先<br><span class="hint">(どこで買ったか)</span></th>
+            <th>商品名<br><span class="hint">(ｶﾞｿﾘﾝ代･ｵｲﾙ交換は車番記入)</span></th>
+            <th>税込金額</th>
+            <th>添付ファイル<br><span class="hint">(画像またはPDF)</span></th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="items-body">
+          <% items.forEach(it => { %>
+            <tr class="item-row">
+              <td class="receipt-cell">
+                <select name="has_receipt">
+                  <option value="有" <%= it.has_receipt === '有' ? 'selected' : '' %>>有</option>
+                  <option value="無" <%= it.has_receipt !== '有' ? 'selected' : '' %>>無</option>
+                </select>
+              </td>
+              <td><input type="text" name="item_date" value="<%= it.item_date || '' %>" placeholder="例: 6/2"></td>
+              <td><input type="text" name="site_name" value="<%= it.site_name || '' %>"></td>
+              <td><input type="text" name="payee" value="<%= it.payee || '' %>"></td>
+              <td><input type="text" name="item_name" value="<%= it.item_name || '' %>"></td>
+              <td><input type="number" name="amount" class="amount-input" min="0" step="1" value="<%= it.amount %>"></td>
+              <td class="file-cell">
+                <input type="hidden" name="row_id" value="<%= it.id %>">
+                <input type="hidden" name="remove_receipt" value="" class="remove-receipt-flag">
+                <input type="file" name="receipt_file_<%= it.id %>" class="<%= it.receipt_path ? 'is-hidden' : '' %>" accept="image/png,image/jpeg,application/pdf">
+                <span class="file-name-display <%= it.receipt_path ? '' : 'is-hidden' %>">
+                  <a href="<%= it.receipt_path ? ('/uploads/receipt/' + it.id) : '#' %>" rel="noopener" class="file-name-link <%= it.receipt_path ? 'receipt-link' : '' %>" data-type="<%= it.receipt_is_pdf ? 'pdf' : 'image' %>"><%= it.receipt_original_name || '添付ファイル' %></a>
+                  <button type="button" class="remove-file-btn link-button">削除</button>
+                </span>
+                <button type="button" class="ocr-btn secondary-button <%= (it.receipt_path && !it.receipt_is_pdf) ? '' : 'is-hidden' %>" data-existing-item-id="<%= it.id %>">金額を読み取る</button>
+                <span class="ocr-status"></span>
+              </td>
+              <td><button type="button" class="remove-row link-button">削除</button></td>
+            </tr>
+          <% }) %>
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colspan="5" class="total-label">合計</td>
+            <td class="total-amount" id="total-amount">0 円</td>
+            <td colspan="2"></td>
+          </tr>
+        </tfoot>
+      </table>
+
+      <button type="button" id="add-row" class="secondary-button">＋ 行を追加</button>
+
+      <div class="form-actions">
+        <button type="submit" class="primary-button"><%= mode === 'edit' ? '再申請する' : '申請する' %></button>
+      </div>
+    </form>
+  </main>
+
+  <template id="row-template">
+    <tr class="item-row">
+      <td class="receipt-cell">
+        <select name="has_receipt">
+          <option value="有">有</option>
+          <option value="無" selected>無</option>
+        </select>
+      </td>
+      <td><input type="text" name="item_date" placeholder="例: 6/2"></td>
+      <td><input type="text" name="site_name"></td>
+      <td><input type="text" name="payee"></td>
+      <td><input type="text" name="item_name"></td>
+      <td><input type="number" name="amount" class="amount-input" min="0" step="1" value="0"></td>
+      <td class="file-cell">
+        <input type="hidden" name="row_id" value="">
+        <input type="hidden" name="remove_receipt" value="" class="remove-receipt-flag">
+        <input type="file" name="receipt_file_pending" accept="image/png,image/jpeg,application/pdf">
+        <span class="file-name-display is-hidden">
+          <a href="#" rel="noopener" class="file-name-link"></a>
+          <button type="button" class="remove-file-btn link-button">削除</button>
+        </span>
+        <button type="button" class="ocr-btn secondary-button is-hidden">金額を読み取る</button>
+        <span class="ocr-status"></span>
+      </td>
+      <td><button type="button" class="remove-row link-button">削除</button></td>
+    </tr>
+  </template>
+
+  <%- include('partials/receipt_modal') %>
+  <script src="/report_form.js"></script>
+</body>
+</html>

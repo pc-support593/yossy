@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <title>上長承認 | 経費精算表システム</title>
+  <%- include('partials/head') %>
+</head>
+<body>
+  <%- include('partials/nav') %>
+  <main class="container">
+    <h1>承認待ちの申請</h1>
+    <% if (pending.length === 0) { %>
+      <p>現在承認待ちの申請はありません。</p>
+    <% } else { %>
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th>日付</th>
+            <th>会社</th>
+            <th>部署</th>
+            <th>氏名</th>
+            <th>合計金額</th>
+            <th>区分</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% pending.forEach(r => { %>
+            <tr>
+              <td><%= r.report_date %></td>
+              <td><%= r.company %></td>
+              <td><%= r.department %></td>
+              <td><%= r.applicant_name %></td>
+              <td class="amount"><%= r.total_amount.toLocaleString() %> 円</td>
+              <td><span class="status status-<%= r.status %>"><%= r.status === 'accounting_rejected' ? '経理差戻し' : '新規申請' %></span></td>
+              <td><a href="/approvals/<%= r.id %>">確認する</a></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    <% } %>
+
+    <h2>処理履歴(直近20件)</h2>
+    <% if (handled.length === 0) { %>
+      <p>まだ承認・差戻しの履歴がありません。</p>
+    <% } else { %>
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th>日付</th>
+            <th>氏名</th>
+            <th>合計金額</th>
+            <th>ステータス</th>
+            <th>処理日時</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% handled.forEach(r => { %>
+            <tr>
+              <td><%= r.report_date %></td>
+              <td><%= r.applicant_name %></td>
+              <td class="amount"><%= r.total_amount.toLocaleString() %> 円</td>
+              <td><span class="status status-<%= r.status %>"><%= r.status === 'approved' ? '承認済み' : '差戻し' %></span></td>
+              <td><%= r.approved_at %></td>
+              <td><a href="/approvals/<%= r.id %>">詳細</a></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    <% } %>
+  </main>
+</body>
+</html>
