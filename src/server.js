@@ -347,6 +347,52 @@ app.get('/accounting', requireRole('accounting', 'admin'), (req, res) => {
   res.render('accounting_list', { pending, handled });
 });
 
+// --- 経理確認: 確認済みデータをCSVエクスポート ---
+// CSVの1行 = 精算表の明細1行。添付ファイルは対象外。
+function csvField(value) {
+  const s = value === null || value === undefined ? '' : String(value);
+  if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+  return s;
+}
+
+app.get('/accounting/export.csv', requireRole('accounting', 'admin'), (req, res) => {
+  const rows = db.prepare(`
+    SELECT
+      er.applicant_name,
+      er.department,
+      ei.item_date,
+      ei.site_name,
+      ei.payee,
+      ei.item_name,
+      ei.amount
+    FROM expense_items ei
+    JOIN expense_reports er ON ei.report_id = er.id
+    WHERE er.status = 'accounting_checked'
+    ORDER BY er.checked_at ASC, er.id ASC, ei.sort_order ASC
+  `).all();
+
+  const header = ['社員名', '社員の部門名', '日付', '現場名', '支払先', '商品名', '税込金額'];
+  const lines = [header.map(csvField).join(',')];
+  for (const r of rows) {
+    lines.push([
+      r.applicant_name,
+      r.department,
+      r.item_date,
+      r.site_name,
+      r.payee,
+      r.item_name,
+      r.amount,
+    ].map(csvField).join(','));
+  }
+  const BOM = '﻿';
+  const csv = BOM + lines.join('\r\n') + '\r\n'; // Excelでの文字化け防止にBOMを付与
+
+  const stamp = new Date().toISOString().slice(0, 10);
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="expense_checked_${stamp}.csv"`);
+  res.send(csv);
+});
+
 // --- 経理確認: 詳細 ---
 app.get('/accounting/:id', requireRole('accounting', 'admin'), (req, res) => {
   const report = db.prepare('SELECT * FROM expense_reports WHERE id = ?').get(req.params.id);

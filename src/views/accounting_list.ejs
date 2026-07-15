@@ -7,6 +7,10 @@
 <body>
   <%- include('partials/nav') %>
   <main class="container">
+    <div class="form-actions" style="display: flex; justify-content: flex-end;">
+      <a href="/accounting/export.csv" class="secondary-button">経理確認済みデータをCSVエクスポート</a>
+    </div>
+
     <h1>経理確認待ちの申請</h1>
     <% if (pending.length === 0) { %>
       <p>現在経理確認待ちの申請はありません。</p>
