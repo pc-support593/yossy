@@ -334,21 +334,36 @@ app.post('/ocr/receipt', requireLogin, ocrUpload.single('image'), async (req, re
   }
 });
 
+// 日付フィルタ用のクエリパラメータ(YYYY-MM-DD)を検証する。不正な値は無視する(undefinedを返す)。
+function parseDateParam(value) {
+  return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : undefined;
+}
+
 // --- 経理確認: 一覧 ---
 app.get('/accounting', requireRole('accounting', 'admin'), (req, res) => {
+  const dateFrom = parseDateParam(req.query.date_from);
+  const dateTo = parseDateParam(req.query.date_to);
+
   const pending = db.prepare(`
     SELECT * FROM expense_reports WHERE status = 'approved' ORDER BY approved_at ASC
   `).all();
+
+  const handledConditions = ["status IN ('accounting_checked', 'accounting_rejected')", 'checked_by = ?'];
+  const handledParams = [req.session.user.id];
+  if (dateFrom) { handledConditions.push('report_date >= ?'); handledParams.push(dateFrom); }
+  if (dateTo) { handledConditions.push('report_date <= ?'); handledParams.push(dateTo); }
   const handled = db.prepare(`
     SELECT * FROM expense_reports
-    WHERE status IN ('accounting_checked', 'accounting_rejected') AND checked_by = ?
-    ORDER BY checked_at DESC LIMIT 20
-  `).all(req.session.user.id);
-  res.render('accounting_list', { pending, handled });
+    WHERE ${handledConditions.join(' AND ')}
+    ORDER BY checked_at DESC ${dateFrom || dateTo ? '' : 'LIMIT 20'}
+  `).all(...handledParams);
+
+  res.render('accounting_list', { pending, handled, dateFrom, dateTo });
 });
 
 // --- 経理確認: 確認済みデータをCSVエクスポート ---
 // CSVの1行 = 精算表の明細1行。添付ファイルは対象外。
+// date_from/date_to(YYYY-MM-DD)を指定すると、精算表の日付でその範囲に絞り込む。
 function csvField(value) {
   const s = value === null || value === undefined ? '' : String(value);
   if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
@@ -356,6 +371,14 @@ function csvField(value) {
 }
 
 app.get('/accounting/export.csv', requireRole('accounting', 'admin'), (req, res) => {
+  const dateFrom = parseDateParam(req.query.date_from);
+  const dateTo = parseDateParam(req.query.date_to);
+
+  const conditions = ["er.status = 'accounting_checked'"];
+  const params = [];
+  if (dateFrom) { conditions.push('er.report_date >= ?'); params.push(dateFrom); }
+  if (dateTo) { conditions.push('er.report_date <= ?'); params.push(dateTo); }
+
   const rows = db.prepare(`
     SELECT
       er.applicant_name,
@@ -367,9 +390,9 @@ app.get('/accounting/export.csv', requireRole('accounting', 'admin'), (req, res)
       ei.amount
     FROM expense_items ei
     JOIN expense_reports er ON ei.report_id = er.id
-    WHERE er.status = 'accounting_checked'
-    ORDER BY er.checked_at ASC, er.id ASC, ei.sort_order ASC
-  `).all();
+    WHERE ${conditions.join(' AND ')}
+    ORDER BY er.report_date ASC, er.id ASC, ei.sort_order ASC
+  `).all(...params);
 
   const header = ['社員名', '社員の部門名', '日付', '現場名', '支払先', '商品名', '税込金額'];
   const lines = [header.map(csvField).join(',')];
@@ -388,8 +411,9 @@ app.get('/accounting/export.csv', requireRole('accounting', 'admin'), (req, res)
   const csv = BOM + lines.join('\r\n') + '\r\n'; // Excelでの文字化け防止にBOMを付与
 
   const stamp = new Date().toISOString().slice(0, 10);
+  const rangeSuffix = dateFrom || dateTo ? `_${dateFrom || 'start'}_${dateTo || 'end'}` : '';
   res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-  res.setHeader('Content-Disposition', `attachment; filename="expense_checked_${stamp}.csv"`);
+  res.setHeader('Content-Disposition', `attachment; filename="expense_checked${rangeSuffix}_${stamp}.csv"`);
   res.send(csv);
 });
 

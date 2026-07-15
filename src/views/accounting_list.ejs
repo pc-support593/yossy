@@ -7,10 +7,6 @@
 <body>
   <%- include('partials/nav') %>
   <main class="container">
-    <div class="form-actions" style="display: flex; justify-content: flex-end;">
-      <a href="/accounting/export.csv" class="secondary-button">経理確認済みデータをCSVエクスポート</a>
-    </div>
-
     <h1>経理確認待ちの申請</h1>
     <% if (pending.length === 0) { %>
       <p>現在経理確認待ちの申請はありません。</p>
@@ -41,7 +37,29 @@
       </table>
     <% } %>
 
-    <h2>確認履歴(直近20件)</h2>
+    <h2>確認履歴<%= (dateFrom || dateTo) ? '(絞り込み中)' : '(直近20件)' %></h2>
+
+    <form method="GET" action="/accounting" class="report-header" style="align-items: end;">
+      <label>
+        日付(から)
+        <input type="date" name="date_from" value="<%= dateFrom || '' %>">
+      </label>
+      <label>
+        日付(まで)
+        <input type="date" name="date_to" value="<%= dateTo || '' %>">
+      </label>
+      <div class="form-actions" style="margin-top: 0;">
+        <button type="submit" class="secondary-button">絞り込む</button>
+        <% if (dateFrom || dateTo) { %>
+          <a href="/accounting">条件をクリア</a>
+        <% } %>
+      </div>
+    </form>
+
+    <div class="form-actions" style="display: flex; justify-content: flex-end;">
+      <a href="/accounting/export.csv<%= (dateFrom || dateTo) ? ('?date_from=' + (dateFrom || '') + '&date_to=' + (dateTo || '')) : '' %>" class="secondary-button">経理確認済みデータをCSVエクスポート<%= (dateFrom || dateTo) ? '(絞り込み中の期間)' : '' %></a>
+    </div>
+
     <% if (handled.length === 0) { %>
       <p>まだ経理確認の履歴がありません。</p>
     <% } else { %>
