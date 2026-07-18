@@ -11,15 +11,18 @@ function extractTotalAmount(text) {
   }
 
   const lines = text.split(/\r?\n/);
-  const totalKeywords = ['合計', '合計金額', 'ご請求', 'お会計', 'total'];
+  const totalKeywords = ['合計', '総計', 'ご請求', 'お会計', 'total'];
 
+  // 「合計」「総計」等が含まれる行を全て集め、その中の最大値を採用する
+  // (小計・割引などの行にもキーワードが含まれ複数該当することがあるため、1行目で決め打ちにしない)
+  const keywordNums = [];
   for (const line of lines) {
     const lower = line.toLowerCase();
     if (totalKeywords.some((kw) => line.includes(kw) || lower.includes(kw))) {
-      const nums = numbersInLine(line);
-      if (nums.length > 0) return Math.max(...nums);
+      keywordNums.push(...numbersInLine(line));
     }
   }
+  if (keywordNums.length > 0) return Math.max(...keywordNums);
 
   const allNums = numbersInLine(text.replace(/\n/g, ' '));
   if (allNums.length > 0) return Math.max(...allNums);
