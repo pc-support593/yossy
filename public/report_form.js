@@ -107,7 +107,7 @@
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || '読み取りに失敗しました');
 
-      // インボイス登録番号(T+12桁)の検出結果で「領収書 有・無」を自動設定する
+      // インボイス登録番号(T+13桁)の検出結果で「領収書 有・無」を自動設定する
       const select = row.querySelector('select[name="has_receipt"]');
       if (select) select.value = data.hasInvoiceNumber ? '有' : '無';
       const removeFlag = row.querySelector('.remove-receipt-flag');

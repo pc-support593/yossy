@@ -4,7 +4,7 @@ const { PDFParse } = require('pdf-parse');
 // 「合計」「請求金額」「TOTAL」等のキーワードが含まれる行を優先し、その中でも
 // 「￥」「円」が付いた金額らしい数値をさらに優先して採用する。
 function extractTotalAmount(text) {
-  // インボイス登録番号(T+12桁)のような、明らかに金額ではない桁数の数値を除外する
+  // インボイス登録番号(T+13桁)のような、明らかに金額ではない桁数の数値を除外する
   const PLAUSIBLE_MAX_AMOUNT = 10000000;
 
   // OCRはカンマ区切り(1,234)をピリオド(1.234)と誤読することがあるため、両方を桁区切りとして扱う
@@ -62,7 +62,7 @@ function extractTotalAmount(text) {
 function hasInvoiceRegistrationNumber(text) {
   // OCR・PDF抽出テキストに全角数字が混じることがあるため、半角に正規化してから判定する
   const normalized = text.replace(/[０-９]/g, (d) => String.fromCharCode(d.charCodeAt(0) - 0xfee0));
-  return /(?<!\d)T\d{12}(?!\d)/i.test(normalized);
+  return /(?<!\d)T\d{13}(?!\d)/i.test(normalized);
 }
 
 async function recognizeReceipt(buffer) {
