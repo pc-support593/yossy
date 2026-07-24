@@ -11,6 +11,16 @@ const db = require('./db');
 const { requireLogin, requireRole } = require('./auth');
 const { recognizeReceipt, recognizeReceiptFromPdf } = require('./ocr');
 
+// 壊れた画像などをtesseract.js(WASM)が処理した際、内部のWorkerが回復不能なエラーを
+// プロセス全体に投げてサーバーごとクラッシュさせることがある。1件のOCR失敗でサーバー全体が
+// 落ちる(=全ユーザーのセッションが失われる)のを防ぐため、プロセスは落とさずログだけ残す。
+process.on('uncaughtException', (err) => {
+  console.error('未処理の例外が発生しましたが、サーバーは継続します:', err);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('未処理のPromise拒否が発生しましたが、サーバーは継続します:', reason);
+});
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
