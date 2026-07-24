@@ -1,34 +1,57 @@
 const { createWorker } = require('tesseract.js');
 const { PDFParse } = require('pdf-parse');
 
-// 「合計」「TOTAL」等のキーワードが含まれる行を優先し、なければ本文中の最大の金額らしき数値を返す
+// 「合計」「請求金額」「TOTAL」等のキーワードが含まれる行を優先し、その中でも
+// 「￥」「円」が付いた金額らしい数値をさらに優先して採用する。
 function extractTotalAmount(text) {
-  // OCRはカンマ区切り(1,234)をピリオド(1.234)と誤読することがあるため、両方を桁区切りとして扱う
-  const numRegex = /[¥￥]?\s?([0-9][0-9,.]{2,})\s?円?/g;
-
   // インボイス登録番号(T+12桁)のような、明らかに金額ではない桁数の数値を除外する
   const PLAUSIBLE_MAX_AMOUNT = 10000000;
 
+  // OCRはカンマ区切り(1,234)をピリオド(1.234)と誤読することがあるため、両方を桁区切りとして扱う
+  const numRegex = /[¥￥]?\s?([0-9][0-9,.]{2,})\s?円?/g;
+  // 「￥1,000」「1,000円」のように、通貨記号がはっきり付いている数値だけを狙う(より信頼度が高い)
+  const currencyNumRegex = /[¥￥]\s?([0-9][0-9,.]*)|([0-9][0-9,.]*)\s?円/g;
+
+  function toPlausibleNumbers(rawValues) {
+    return rawValues
+      .map((v) => parseInt(v.replace(/[,.]/g, ''), 10))
+      .filter((n) => Number.isFinite(n) && n > 0 && n < PLAUSIBLE_MAX_AMOUNT);
+  }
+
   function numbersInLine(line) {
-    const matches = [...line.matchAll(numRegex)].map((m) => parseInt(m[1].replace(/[,.]/g, ''), 10));
-    return matches.filter((n) => Number.isFinite(n) && n > 0 && n < PLAUSIBLE_MAX_AMOUNT);
+    return toPlausibleNumbers([...line.matchAll(numRegex)].map((m) => m[1]));
+  }
+
+  function currencyNumbersInLine(line) {
+    return toPlausibleNumbers([...line.matchAll(currencyNumRegex)].map((m) => m[1] || m[2]));
   }
 
   const lines = text.split(/\r?\n/);
-  const totalKeywords = ['合計', '総計', 'ご請求', 'お会計', 'total'];
+  const totalKeywords = ['合計', '総計', '請求金額', 'ご請求', '請求', 'お会計', 'total'];
 
-  // 「合計」「総計」等が含まれる行を全て集め、その中の最大値を採用する
+  // 「合計」「請求金額」等が含まれる行を全て集める
   // (小計・割引などの行にもキーワードが含まれ複数該当することがあるため、1行目で決め打ちにしない)
-  const keywordNums = [];
-  for (const line of lines) {
+  const keywordLines = lines.filter((line) => {
     const lower = line.toLowerCase();
-    if (totalKeywords.some((kw) => line.includes(kw) || lower.includes(kw))) {
-      keywordNums.push(...numbersInLine(line));
-    }
-  }
-  if (keywordNums.length > 0) return Math.max(...keywordNums);
+    return totalKeywords.some((kw) => line.includes(kw) || lower.includes(kw));
+  });
 
-  const allNums = numbersInLine(text.replace(/\n/g, ' '));
+  if (keywordLines.length > 0) {
+    // 優先1: キーワード行の中で「￥」「円」がはっきり付いている金額
+    const currencyNums = keywordLines.flatMap(currencyNumbersInLine);
+    if (currencyNums.length > 0) return Math.max(...currencyNums);
+
+    // 優先2: 通貨記号は無いが、キーワード行内にある数値
+    const plainNums = keywordLines.flatMap(numbersInLine);
+    if (plainNums.length > 0) return Math.max(...plainNums);
+  }
+
+  // キーワードが見つからない場合は、本文全体から「￥」「円」付きの金額を優先して探す
+  const wholeText = text.replace(/\n/g, ' ');
+  const allCurrencyNums = currencyNumbersInLine(wholeText);
+  if (allCurrencyNums.length > 0) return Math.max(...allCurrencyNums);
+
+  const allNums = numbersInLine(wholeText);
   if (allNums.length > 0) return Math.max(...allNums);
 
   return null;
