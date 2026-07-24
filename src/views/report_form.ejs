@@ -67,7 +67,7 @@
                   <a href="<%= it.receipt_path ? ('/uploads/receipt/' + it.id) : '#' %>" rel="noopener" class="file-name-link <%= it.receipt_path ? 'receipt-link' : '' %>" data-type="<%= it.receipt_is_pdf ? 'pdf' : 'image' %>"><%= it.receipt_original_name || '添付ファイル' %></a>
                   <button type="button" class="remove-file-btn link-button">削除</button>
                 </span>
-                <button type="button" class="ocr-btn secondary-button <%= (it.receipt_path && !it.receipt_is_pdf) ? '' : 'is-hidden' %>" data-existing-item-id="<%= it.id %>">金額を読み取る</button>
+                <button type="button" class="ocr-btn secondary-button <%= it.receipt_path ? '' : 'is-hidden' %>" data-existing-item-id="<%= it.id %>">金額・登録番号を読み取る</button>
                 <span class="ocr-status"></span>
               </td>
               <td><button type="button" class="remove-row link-button">削除</button></td>
@@ -112,7 +112,7 @@
           <a href="#" rel="noopener" class="file-name-link"></a>
           <button type="button" class="remove-file-btn link-button">削除</button>
         </span>
-        <button type="button" class="ocr-btn secondary-button is-hidden">金額を読み取る</button>
+        <button type="button" class="ocr-btn secondary-button is-hidden">金額・登録番号を読み取る</button>
         <span class="ocr-status"></span>
       </td>
       <td><button type="button" class="remove-row link-button">削除</button></td>

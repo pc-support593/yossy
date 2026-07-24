@@ -31,9 +31,9 @@
     }
 
     if (ocrBtn) {
-      const hasNewImage = hasSelectedFile && fileInput.files[0].type.startsWith('image/');
-      const hasExistingImage = !hasSelectedFile && ocrBtn.dataset.existingItemId;
-      ocrBtn.classList.toggle('is-hidden', !(hasNewImage || hasExistingImage));
+      // 画像・PDFのどちらでも「金額・登録番号を読み取る」を使えるようにする
+      const hasExistingFile = !hasSelectedFile && ocrBtn.dataset.existingItemId;
+      ocrBtn.classList.toggle('is-hidden', !(hasSelectedFile || hasExistingFile));
     }
   }
 
@@ -107,13 +107,22 @@
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || '読み取りに失敗しました');
 
+      // インボイス登録番号(T+12桁)の検出結果で「領収書 有・無」を自動設定する
+      const select = row.querySelector('select[name="has_receipt"]');
+      if (select) select.value = data.hasInvoiceNumber ? '有' : '無';
+      const removeFlag = row.querySelector('.remove-receipt-flag');
+      if (removeFlag) removeFlag.value = ''; // 判定できたので削除フラグは解除
+
+      const messages = [];
       if (data.amount) {
         amountInput.value = data.amount;
         recalcTotal();
-        if (ocrStatus) ocrStatus.textContent = `読み取り結果: ${data.amount.toLocaleString()}円(内容をご確認ください)`;
-      } else if (ocrStatus) {
-        ocrStatus.textContent = '金額を検出できませんでした。手入力してください。';
+        messages.push(`金額: ${data.amount.toLocaleString()}円`);
+      } else {
+        messages.push('金額を検出できませんでした。手入力してください。');
       }
+      messages.push(data.hasInvoiceNumber ? '登録番号: 検出(領収書=有)' : '登録番号: 未検出(領収書=無)');
+      if (ocrStatus) ocrStatus.textContent = `${messages.join(' / ')}(内容をご確認ください)`;
     } catch (err) {
       if (ocrStatus) ocrStatus.textContent = err.message || '読み取りに失敗しました';
     } finally {

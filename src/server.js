@@ -9,7 +9,7 @@ const bcrypt = require('bcryptjs');
 const multer = require('multer');
 const db = require('./db');
 const { requireLogin, requireRole } = require('./auth');
-const { recognizeReceipt } = require('./ocr');
+const { recognizeReceipt, recognizeReceiptFromPdf } = require('./ocr');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -37,17 +37,23 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 },
 });
 
-// OCR用: ディスクに保存せずメモリ上でTesseractに渡すだけなので memoryStorage を使う
+// OCR用: ディスクに保存せずメモリ上でTesseract/PDF解析に渡すだけなので memoryStorage を使う
 const ocrUpload = multer({
   storage: multer.memoryStorage(),
   fileFilter: (req, file, cb) => {
-    if (!file.mimetype.startsWith('image/')) {
-      return cb(new Error('画像ファイル(PNG/JPEG)のみ読み取りに対応しています'));
+    if (!file.mimetype.startsWith('image/') && file.mimetype !== 'application/pdf') {
+      return cb(new Error('画像ファイル(PNG/JPEG)またはPDFのみ読み取りに対応しています'));
     }
     cb(null, true);
   },
   limits: { fileSize: 10 * 1024 * 1024 },
 });
+
+// 画像かPDFかを判定し、それぞれに応じた読み取り処理(OCR/テキスト抽出)を呼び分ける
+function recognizeByMimeOrExt(buffer, { mimetype, filename }) {
+  const isPdf = mimetype === 'application/pdf' || (filename && path.extname(filename).toLowerCase() === '.pdf');
+  return isPdf ? recognizeReceiptFromPdf(buffer) : recognizeReceipt(buffer);
+}
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
@@ -113,6 +119,7 @@ function saveItems(reportId, body, files = [], existingReceiptMap = {}) {
   const itemAmounts = [].concat(body.amount || []);
   const itemRowIds = [].concat(body.row_id || []);
   const itemRemoveReceipt = [].concat(body.remove_receipt || []);
+  const itemReceipts = [].concat(body.has_receipt || []);
 
   let total = 0;
   for (let i = 0; i < itemDates.length; i++) {
@@ -134,8 +141,9 @@ function saveItems(reportId, body, files = [], existingReceiptMap = {}) {
       site_name: itemSites[i] || null,
       payee: itemPayees[i] || null,
       item_name: itemNames[i] || null,
-      // 領収書有無はフォームの選択値ではなく、実際に添付ファイルが存在するかどうかで確定する(デフォルト無・添付で自動的に有)
-      has_receipt: receiptPath ? '有' : '無',
+      // 領収書有無: 添付ファイルが無ければ必ず「無」。添付がある場合は、インボイス登録番号(T+12桁)の
+      // 読み取り結果に基づいてクライアント側が設定した値(有/無)を信頼する。
+      has_receipt: receiptPath ? (itemReceipts[i] === '有' ? '有' : '無') : '無',
       amount,
       receipt_path: receiptPath,
       receipt_original_name: receiptOriginalName,
@@ -322,12 +330,15 @@ app.post('/approvals/:id/forward-to-applicant', requireRole('supervisor', 'admin
   res.redirect('/approvals');
 });
 
-// --- 領収書OCR: 画像から合計金額を読み取る ---
+// --- 領収書OCR: 画像/PDFから合計金額とインボイス登録番号(T+12桁)の有無を読み取る ---
 app.post('/ocr/receipt', requireLogin, ocrUpload.single('image'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'ファイルが指定されていません' });
   try {
-    const { amount } = await recognizeReceipt(req.file.buffer);
-    res.json({ amount });
+    const { amount, hasInvoiceNumber } = await recognizeByMimeOrExt(req.file.buffer, {
+      mimetype: req.file.mimetype,
+      filename: req.file.originalname,
+    });
+    res.json({ amount, hasInvoiceNumber });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: '読み取りに失敗しました' });
@@ -485,8 +496,8 @@ app.post('/ocr/receipt/:itemId', requireLogin, async (req, res) => {
 
   try {
     const buffer = fs.readFileSync(path.join(UPLOAD_DIR, row.receipt_path));
-    const { amount } = await recognizeReceipt(buffer);
-    res.json({ amount });
+    const { amount, hasInvoiceNumber } = await recognizeByMimeOrExt(buffer, { filename: row.receipt_path });
+    res.json({ amount, hasInvoiceNumber });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: '読み取りに失敗しました' });
