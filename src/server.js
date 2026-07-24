@@ -141,8 +141,8 @@ function saveItems(reportId, body, files = [], existingReceiptMap = {}) {
       site_name: itemSites[i] || null,
       payee: itemPayees[i] || null,
       item_name: itemNames[i] || null,
-      // 領収書有無: 添付ファイルが無ければ必ず「無」。添付がある場合は、インボイス登録番号(T+13桁)の
-      // 読み取り結果に基づいてクライアント側が設定した値(有/無)を信頼する。
+      // 領収書有無: 添付ファイルが無ければ必ず「無」。添付がある場合は、「登録番号」「T番号」の表記の
+      // 有無を読み取った結果に基づいてクライアント側が設定した値(有/無)を信頼する。
       has_receipt: receiptPath ? (itemReceipts[i] === '有' ? '有' : '無') : '無',
       amount,
       receipt_path: receiptPath,
@@ -330,7 +330,7 @@ app.post('/approvals/:id/forward-to-applicant', requireRole('supervisor', 'admin
   res.redirect('/approvals');
 });
 
-// --- 領収書OCR: 画像/PDFから合計金額とインボイス登録番号(T+13桁)の有無を読み取る ---
+// --- 領収書OCR: 画像/PDFから合計金額と「登録番号」「T番号」表記の有無を読み取る ---
 app.post('/ocr/receipt', requireLogin, ocrUpload.single('image'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'ファイルが指定されていません' });
   try {
