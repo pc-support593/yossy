@@ -59,10 +59,40 @@ function extractTotalAmount(text) {
 
 // インボイス制度の適格請求書発行事業者登録番号(T+数字13桁)が含まれているかを判定する。
 // 領収書の「有・無」は、単にファイルが添付されているかではなく、この番号が読み取れるかどうかで判定する。
+//
+// 「登録番号」「T番号」というラベルの直後にある「T+数字列」を対象にする。数字列にはハイフン・
+// スペース・中点などの記号が混ざり、見た目の桁数が13桁を超えることがあるため、記号を取り除いた上で
+// 数字がちょうど13桁になるものだけを有効な登録番号とみなす。
 function hasInvoiceRegistrationNumber(text) {
-  // OCR・PDF抽出テキストに全角数字が混じることがあるため、半角に正規化してから判定する
-  const normalized = text.replace(/[０-９]/g, (d) => String.fromCharCode(d.charCodeAt(0) - 0xfee0));
-  return /(?<!\d)T\d{13}(?!\d)/i.test(normalized);
+  // OCR・PDF抽出テキストは全角の数字・T・記号が混じることがあるため、まず半角に正規化する
+  const normalized = text
+    .replace(/[０-９]/g, (d) => String.fromCharCode(d.charCodeAt(0) - 0xfee0))
+    .replace(/[Ｔｔ]/g, 'T');
+
+  // T の直後に続きうる「数字と区切り記号」の並び(ハイフン・スペース・ドット・コロン・中点など)
+  const T_NUMBER_REGEX = /T[0-9\-‐–—―ー－\s.:：・]{0,25}/gi;
+
+  function isExactly13Digits(match) {
+    const digits = match.slice(1).replace(/\D/g, '');
+    return digits.length === 13;
+  }
+
+  // 優先: 「登録番号」「T番号」というラベルの直後にある番号を探す
+  const labels = ['登録番号', 'T番号'];
+  for (const label of labels) {
+    let searchFrom = 0;
+    let idx;
+    while ((idx = normalized.indexOf(label, searchFrom)) !== -1) {
+      const windowText = normalized.slice(idx + label.length, idx + label.length + 40);
+      const m = windowText.match(T_NUMBER_REGEX);
+      if (m && m.some(isExactly13Digits)) return true;
+      searchFrom = idx + label.length;
+    }
+  }
+
+  // フォールバック: ラベル自体をOCRが読み取れていなくても、T+13桁のパターンが本文中にあれば検出する
+  const globalMatches = normalized.match(T_NUMBER_REGEX) || [];
+  return globalMatches.some(isExactly13Digits);
 }
 
 async function recognizeReceipt(buffer) {
