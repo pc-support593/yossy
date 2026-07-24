@@ -61,8 +61,12 @@ function extractTotalAmount(text) {
 // 領収書の「有・無」は、単にファイルが添付されているかではなく、「登録番号」または「T番号」という
 // 表記が本文中にあるかどうかだけで判定する(番号自体の桁数や内容は見ない)。
 function hasInvoiceRegistrationNumber(text) {
-  // OCR・PDF抽出テキストは全角のTが混じることがあるため、まず半角に正規化する
-  const normalized = text.replace(/[Ｔｔ]/g, 'T');
+  // OCR・PDF抽出テキストは、全角のTが混じったり、文字と文字の間に余計な空白・改行が
+  // 入ったりすることがある(例:「登録番号」→「登 録\n番号」)ため、まず全角Tを半角にし、
+  // 空白・改行類をすべて取り除いてから判定する。
+  const normalized = text
+    .replace(/[Ｔｔ]/g, 'T')
+    .replace(/[\s　]+/g, '');
   return normalized.includes('登録番号') || normalized.includes('T番号');
 }
 
